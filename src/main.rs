@@ -9,8 +9,9 @@ fn main() {
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
+                // handle each stream in a different thread
                 thread::spawn(move || {
-                    handle_stream(stream);
+                    handle_client(stream);
                 });
             }
             Err(e) => {
@@ -20,7 +21,7 @@ fn main() {
     }
 }
 
-fn handle_stream(mut stream: TcpStream) {
+fn handle_client(mut stream: TcpStream) {
     let mut buf = [0; 1024];
     loop {
         let _ = stream.read(&mut buf);
