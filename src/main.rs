@@ -1,7 +1,7 @@
 // Uncomment this block to pass the first stage
-use std::io::{Error, Read, Write};
+use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::str::{from_utf8, from_utf8_mut};
+use std::str::{from_utf8};
 use std::thread;
 
 mod evaluator;
@@ -32,7 +32,7 @@ fn handle_client(mut stream: TcpStream) -> Result<(), Box<dyn std::error::Error>
         let mut buf = [0; 1024];
         match stream.read(&mut buf) {
             Ok(0) => break,
-            Ok(n) => {
+            Ok(_n) => {
                 let response = handle_connection(&buf);
                 let _ = stream.write_all(response.as_bytes());
             }
