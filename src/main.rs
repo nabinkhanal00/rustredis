@@ -1,11 +1,17 @@
 // Uncomment this block to pass the first stage
-use std::io::{Read, Write};
+use std::io::{Error, Read, Write};
 use std::net::{TcpListener, TcpStream};
+use std::str::{from_utf8, from_utf8_mut};
 use std::thread;
 
+mod evaluator;
+mod output;
+mod parser;
+mod types;
+
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:6379")
-        .expect("Failed to bind listener to the provided address.");
+    let listener = TcpListener::bind("127.0.0.1:6379").expect("");
+
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
@@ -22,26 +28,26 @@ fn main() {
 }
 
 fn handle_client(mut stream: TcpStream) -> Result<(), Box<dyn std::error::Error>> {
-    let mut buf = [0; 1024];
     loop {
-        let n = stream.read(&mut buf)?;
-        let request = String::from_utf8(buf[..n].to_vec())?;
-        let request = request.trim();
-        let mut request = request.split_whitespace();
-
-        let command = request.next().ok_or("Command is not provided.")?;
-        let command = command.to_lowercase();
-        let command = command.as_str();
-        match command {
-            "ping" => {
-                let _ = stream.write_all("+PONG\r\n".as_bytes());
+        let mut buf = [0; 1024];
+        match stream.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => {
+                let response = handle_connection(&buf);
+                let _ = stream.write_all(response.as_bytes());
             }
-            "echo" => {
-                let message = request.next().unwrap_or("");
-                let message = format!("${}{}\r\n", message.len(), message);
-                let _ = stream.write_all(message.as_bytes());
+            Err(e) => {
+                return Err(Box::new(e));
             }
-            _ => {}
         }
     }
+    Ok(())
+}
+
+fn handle_connection(input: &[u8]) -> String {
+    let command = from_utf8(input).unwrap().trim_matches(char::from(0));
+    let command = parser::Parser(command.chars())
+        .map(TryInto::try_into)
+        .collect();
+    evaluator::eval(command)
 }
