@@ -30,6 +30,8 @@ fn handle_client(mut stream: TcpStream) -> Result<(), Box<dyn std::error::Error>
         let mut request = request.split_whitespace();
 
         let command = request.next().ok_or("Command is not provided.")?;
+        let command = command.to_lowercase();
+        let command = command.as_str();
         match command {
             "ping" => {
                 let _ = stream.write_all("+PONG\r\n".as_bytes());
